@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "llm-bench-cli"
-version = "0.1.0"
+version = "0.2.0"
 description = "A developer-centric CLI tool to systematically evaluate and compare Large Language Models (LLMs)"
 readme = "README.md"
 license = { file = "LICENSE" }
