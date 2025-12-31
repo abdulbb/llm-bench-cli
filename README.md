@@ -4,8 +4,6 @@
 
 A developer-centric CLI tool to systematically evaluate and compare Large Language Models (LLMs). Define prompts, test cases, and expected outputs, run them concurrently against multiple providers, and get detailed performance metrics (Accuracy, Latency, Throughput, Cost) in your terminal.
 
-![Preview](docs/preview.png)
-
 ![Demo](docs/demo.gif)
 
 </div>
