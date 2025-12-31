@@ -1,12 +1,40 @@
-name: Publish to PyPI
+name: Release & Publish
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'  # Triggers on tags like v0.1.0, v1.0.0, etc.
   workflow_dispatch:
 
 jobs:
+  # Run CI checks first
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run linter
+        run: ruff check src/ tests/
+
+      - name: Run type checker
+        run: mypy src/llm_bench/
+
+      - name: Run tests
+        run: pytest tests/ -v
+
+  # Build the package
   build:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,10 +58,48 @@ jobs:
           name: dist
           path: dist/
 
-  publish-pypi:
+  # Create GitHub Release
+  release:
     needs: build
     runs-on: ubuntu-latest
-    if: github.event.release.target_commitish == 'master' || github.event_name == 'workflow_dispatch'
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get the previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            echo "body=Initial release" >> $GITHUB_OUTPUT
+          else
+            # Generate changelog from commits
+            CHANGELOG=$(git log --pretty=format:"- %s" $PREV_TAG..HEAD)
+            echo "body<<EOF" >> $GITHUB_OUTPUT
+            echo "$CHANGELOG" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          body: ${{ steps.changelog.outputs.body }}
+          generate_release_notes: true
+
+  # Publish to PyPI
+  publish-pypi:
+    needs: release
+    runs-on: ubuntu-latest
     environment:
       name: pypi
       url: https://pypi.org/p/llm-bench-cli
