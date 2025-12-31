@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 import yaml
 from rich.console import Console
@@ -12,8 +12,19 @@ from rich.table import Table
 
 console = Console()
 
+
+class ProviderConfig(TypedDict, total=False):
+    """Type definition for provider configuration."""
+
+    name: str
+    env_var: str | None
+    is_local: bool
+    api_base: str
+    models: list[tuple[str, str]]
+
+
 # Provider configurations
-PROVIDERS = {
+PROVIDERS: dict[str, ProviderConfig] = {
     "openai": {
         "name": "OpenAI",
         "env_var": "OPENAI_API_KEY",

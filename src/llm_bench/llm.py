@@ -449,8 +449,8 @@ def _estimate_tokens(
     """
     try:
         prompt_text = " ".join(msg["content"] for msg in messages)
-        prompt_tokens: int = litellm.token_counter(model=model, text=prompt_text)
-        completion_tokens: int = litellm.token_counter(model=model, text=completion)
+        prompt_tokens: int = litellm.token_counter(model=model, text=prompt_text)  # type: ignore[attr-defined]
+        completion_tokens: int = litellm.token_counter(model=model, text=completion)  # type: ignore[attr-defined]
         return prompt_tokens, completion_tokens
     except Exception:
         # Fallback to rough estimate (4 chars per token)
@@ -470,7 +470,7 @@ def calculate_cost(model: str, prompt_tokens: int, completion_tokens: int) -> fl
         Total cost in USD.
     """
     try:
-        prompt_cost, completion_cost = litellm.cost_per_token(
+        prompt_cost, completion_cost = litellm.cost_per_token(  # type: ignore[attr-defined]
             model=model,
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
