@@ -1,0 +1,197 @@
+name: "OpenRouter Free Models - Comprehensive Evaluation"
+system_prompt: |
+  You are a helpful AI assistant. Always respond with valid JSON.
+  Your response must be a JSON object with the requested fields.
+  Be concise and accurate.
+
+models:
+  - "openrouter/allenai/olmo-3.1-32b-think:free"
+  - "openrouter/xiaomi/mimo-v2-flash:free"
+  - "openrouter/mistralai/devstral-2512:free"
+  - "openrouter/nex-agi/deepseek-v3.1-nex-n1:free"
+  - "openrouter/arcee-ai/trinity-mini:free"
+  - "openrouter/tngtech/tng-r1t-chimera:free"
+  - "openrouter/kwaipilot/kat-coder-pro:free"
+  - "openrouter/nvidia/nemotron-nano-12b-v2-vl:free"
+  - "openrouter/openai/gpt-oss-120b:free"
+  - "openrouter/openai/gpt-oss-20b:free"
+  - "openrouter/qwen/qwen3-coder:free"
+  - "openrouter/moonshotai/kimi-k2:free"
+  - "openrouter/cognitivecomputations/dolphin-mistral-24b-venice-edition:free"
+  - "openrouter/google/gemma-3n-e2b-it:free"
+  - "openrouter/tngtech/deepseek-r1t2-chimera:free"
+  - "openrouter/deepseek/deepseek-r1-0528:free"
+  - "openrouter/google/gemma-3n-e4b-it:free"
+  - "openrouter/qwen/qwen3-4b:free"
+  - "openrouter/tngtech/deepseek-r1t-chimera:free"
+  - "openrouter/mistralai/mistral-small-3.1-24b-instruct:free"
+  - "openrouter/google/gemma-3-4b-it:free"
+  - "openrouter/google/gemma-3-27b-it:free"
+  - "openrouter/google/gemini-2.0-flash-exp:free"
+  - "openrouter/meta-llama/llama-3.3-70b-instruct:free"
+  - "openrouter/meta-llama/llama-3.2-3b-instruct:free"
+  - "openrouter/qwen/qwen-2.5-vl-7b-instruct:free"
+  - "openrouter/nousresearch/hermes-3-llama-3.1-405b:free"
+  - "openrouter/meta-llama/llama-3.1-405b-instruct:free"
+  - "openrouter/mistralai/mistral-7b-instruct:free"
+
+config:
+  concurrency: 3
+  temperature: 0.1
+  judge_model: "openrouter/xiaomi/mimo-v2-flash:free"
+
+test_cases:
+  # ============================================
+  # REASONING & LOGIC
+  # ============================================
+  - input: |
+      Solve this step by step: A farmer has 17 sheep. All but 9 run away. How many sheep does the farmer have left?
+      Return JSON with fields: "answer" (number), "explanation" (brief reasoning)
+    expected:
+      answer: 9
+      explanation: "All but 9 means 9 remain"
+
+  - input: |
+      If it takes 5 machines 5 minutes to make 5 widgets, how long would it take 100 machines to make 100 widgets?
+      Return JSON with: "answer" (number), "unit" (string), "reasoning" (string)
+    expected:
+      answer: 5
+      unit: "minutes"
+      reasoning: "Each machine makes 1 widget in 5 minutes"
+
+  - input: |
+      A bat and ball cost $1.10 together. The bat costs $1.00 more than the ball. How much does the ball cost?
+      Return JSON with: "ball_cost" (number in cents), "bat_cost" (number in cents)
+    expected:
+      ball_cost: 5
+      bat_cost: 105
+
+  # ============================================
+  # MATH
+  # ============================================
+  - input: |
+      Calculate: What is 15% of 80?
+      Return JSON with: "result" (number)
+    expected:
+      result: 12
+
+  - input: |
+      What is the factorial of 6 (6!)?
+      Return JSON with: "result" (number)
+    expected:
+      result: 720
+
+  - input: |
+      Solve: 2^10 = ?
+      Return JSON with: "result" (number)
+    expected:
+      result: 1024
+
+  # ============================================
+  # CODE GENERATION
+  # ============================================
+  - input: |
+      Write a Python function called "is_palindrome" that checks if a string is a palindrome (reads the same forwards and backwards). Ignore case and spaces.
+      Return JSON with: "code" (the Python function as a string)
+    expected:
+      code: "def is_palindrome(s): cleaned = s.lower().replace(' ', ''); return cleaned == cleaned[::-1]"
+
+  - input: |
+      Write a JavaScript function called "fibonacci" that returns the nth Fibonacci number.
+      Return JSON with: "code" (the JavaScript function as a string)
+    expected:
+      code: "function fibonacci(n) { if (n <= 1) return n; return fibonacci(n-1) + fibonacci(n-2); }"
+
+  - input: |
+      What is the time complexity of binary search?
+      Return JSON with: "complexity" (Big O notation), "explanation" (brief)
+    expected:
+      complexity: "O(log n)"
+      explanation: "Halves the search space each iteration"
+
+  # ============================================
+  # INSTRUCTION FOLLOWING
+  # ============================================
+  - input: |
+      List exactly 3 primary colors. Return JSON with: "colors" (array of 3 strings)
+    expected:
+      colors: ["red", "blue", "yellow"]
+
+  - input: |
+      Convert this temperature: 100 degrees Celsius to Fahrenheit.
+      Return JSON with: "celsius" (number), "fahrenheit" (number)
+    expected:
+      celsius: 100
+      fahrenheit: 212
+
+  - input: |
+      Sort these numbers in ascending order: [64, 25, 12, 22, 11]
+      Return JSON with: "sorted" (array of numbers)
+    expected:
+      sorted: [11, 12, 22, 25, 64]
+
+  # ============================================
+  # KNOWLEDGE & FACTS
+  # ============================================
+  - input: |
+      What is the chemical symbol for gold?
+      Return JSON with: "element" (string), "symbol" (string)
+    expected:
+      element: "Gold"
+      symbol: "Au"
+
+  - input: |
+      How many planets are in our solar system (as of 2024)?
+      Return JSON with: "count" (number), "planets" (array of planet names)
+    expected:
+      count: 8
+      planets: ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"]
+
+  - input: |
+      What year did World War II end?
+      Return JSON with: "year" (number)
+    expected:
+      year: 1945
+
+  # ============================================
+  # TEXT ANALYSIS
+  # ============================================
+  - input: |
+      Analyze the sentiment of this text: "I absolutely love this product! It exceeded all my expectations."
+      Return JSON with: "sentiment" (positive/negative/neutral), "confidence" (high/medium/low)
+    expected:
+      sentiment: "positive"
+      confidence: "high"
+
+  - input: |
+      Count the words in this sentence: "The quick brown fox jumps over the lazy dog"
+      Return JSON with: "word_count" (number)
+    expected:
+      word_count: 9
+
+  - input: |
+      Extract all numbers from this text: "I have 3 apples, 7 oranges, and 12 bananas"
+      Return JSON with: "numbers" (array of numbers)
+    expected:
+      numbers: [3, 7, 12]
+
+  # ============================================
+  # DATA TRANSFORMATION
+  # ============================================
+  - input: |
+      Convert this date to ISO format: "December 25, 2024"
+      Return JSON with: "iso_date" (string in YYYY-MM-DD format)
+    expected:
+      iso_date: "2024-12-25"
+
+  - input: |
+      Reverse this string: "hello world"
+      Return JSON with: "reversed" (string)
+    expected:
+      reversed: "dlrow olleh"
+
+  - input: |
+      Convert "hello world" to uppercase.
+      Return JSON with: "result" (string)
+    expected:
+      result: "HELLO WORLD"

@@ -1,0 +1,19 @@
+name: "Basic Assistant Check"
+system_prompt: "You are a helpful assistant. Please output your response in JSON format."
+
+concurrency: 5
+temperature: 0.1
+
+models:
+  - "openrouter/mistralai/devstral-2512:free"
+  - "openrouter/meta-llama/llama-3.3-70b-instruct:free"
+
+test_cases:
+  - input: "What is the capital of France?"
+    expected:
+      country: "France"
+      capital: "Paris"
+
+  - input: "What is 2 + 2?"
+    expected:
+      result: 4

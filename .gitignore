@@ -1,0 +1,55 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.pytest_cache/
+
+# Environments
+.env
+.venv
+venv/
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# mypy
+.mypy_cache/
+
+# ruff
+.ruff_cache/
+
+# Generated reports (user-generated)
+report.csv
+report.html
+report.json
+
+# Benchmark cache
+.llm-bench-cache/
+
+# VHS tape files (for generating demo GIFs)
+*.tape

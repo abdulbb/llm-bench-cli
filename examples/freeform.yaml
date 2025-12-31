@@ -1,0 +1,19 @@
+name: "Freeform Model Comparison"
+system_prompt: "You are a helpful assistant. Answer the user's questions concisely."
+
+concurrency: 5
+temperature: 0.1
+
+# Freeform mode: When test cases have only 'input' (no expected, regex, or validator),
+# the benchmark displays raw outputs for manual inspection instead of pass/fail results.
+# This is useful for:
+# - Comparing how different models respond to the same prompt
+# - Evaluating response style, tone, or creativity
+# - Exploring model capabilities before defining validation criteria
+
+models:
+  - "openrouter/mistralai/devstral-2512:free"
+  - "openrouter/meta-llama/llama-3.3-70b-instruct:free"
+
+test_cases:
+  - input: "Write a haiku about programming."
