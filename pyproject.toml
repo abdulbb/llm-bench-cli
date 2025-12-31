@@ -86,15 +86,18 @@ check_untyped_defs = true
 disallow_untyped_decorators = true
 no_implicit_optional = true
 warn_redundant_casts = true
-warn_unused_ignores = true
+warn_unused_ignores = false  # Disabled due to litellm stubs varying between versions
 warn_no_return = true
 warn_unreachable = true
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
 module = [
+    "litellm",
     "litellm.*",
+    "diskcache",
     "diskcache.*",
+    "deepdiff",
     "deepdiff.*",
 ]
 ignore_missing_imports = true

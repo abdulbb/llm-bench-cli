@@ -51,8 +51,8 @@ app.add_typer(cache_app, name="cache")
 console = Console()
 
 
-# Provider to env var mapping
-PROVIDER_ENV_VARS: dict[str, list[str]] = {
+# Provider to env var mapping (None means no API key required - local models)
+PROVIDER_ENV_VARS: dict[str, list[str] | None] = {
     "openai": ["OPENAI_API_KEY"],
     "anthropic": ["ANTHROPIC_API_KEY"],
     "google": ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
@@ -63,6 +63,11 @@ PROVIDER_ENV_VARS: dict[str, list[str]] = {
     "azure": ["AZURE_API_KEY"],
     "together": ["TOGETHER_API_KEY"],
     "groq": ["GROQ_API_KEY"],
+    # Local model providers (no API key required)
+    "ollama": None,
+    "ollama_chat": None,
+    "lm_studio": None,
+    "hosted_vllm": None,
 }
 
 # Popular models by provider for the models command
@@ -97,6 +102,14 @@ POPULAR_MODELS: dict[str, list[str]] = {
         "groq/llama-3.1-70b-versatile",
         "groq/llama-3.1-8b-instant",
         "groq/mixtral-8x7b-32768",
+    ],
+    # Local model providers
+    "ollama": [
+        "ollama/llama3.1",
+        "ollama/llama3.1:70b",
+        "ollama/mistral",
+        "ollama/codellama",
+        "ollama/phi3",
     ],
 }
 
@@ -539,18 +552,24 @@ def models(
                 console.print(f"[yellow]Unknown provider: {prov}[/yellow]")
             continue
 
-        # Check if API key is configured
-        env_vars = PROVIDER_ENV_VARS.get(prov, [])
-        key_configured = any(os.getenv(var) for var in env_vars)
-        key_status = (
-            "[green]configured[/green]"
-            if key_configured
-            else "[yellow]not set[/yellow]"
-        )
+        # Check if API key is configured (local models don't need keys)
+        env_vars = PROVIDER_ENV_VARS.get(prov)
+        if env_vars is None:
+            # Local provider - no API key needed
+            key_status = "[cyan]local[/cyan]"
+            env_var_display = "No API key required"
+        else:
+            key_configured = any(os.getenv(var) for var in env_vars)
+            key_status = (
+                "[green]configured[/green]"
+                if key_configured
+                else "[yellow]not set[/yellow]"
+            )
+            env_var_display = " or ".join(env_vars)
 
         # Provider header
         console.print(f"[bold cyan]{prov.upper()}[/bold cyan] ({key_status})")
-        console.print(f"  [dim]Env var: {' or '.join(env_vars)}[/dim]")
+        console.print(f"  [dim]Env var: {env_var_display}[/dim]")
 
         # Models
         for model in POPULAR_MODELS[prov]:

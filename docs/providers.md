@@ -75,6 +75,82 @@ export AZURE_API_VERSION="2024-02-01"
 
 Azure deployments require additional configuration. See [LiteLLM Azure docs](https://docs.litellm.ai/docs/providers/azure) for details.
 
+## Local Models
+
+LLM-Bench supports local model servers. No API keys required!
+
+### Ollama
+
+[Ollama](https://ollama.ai) is a popular local model runner. Install it and pull your models:
+
+```bash
+# Install Ollama (macOS/Linux)
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Pull models
+ollama pull llama3.1
+ollama pull mistral
+ollama pull codellama
+
+# Start the server (runs on http://localhost:11434 by default)
+ollama serve
+```
+
+**Model format:** `ollama/model-name`
+
+Examples:
+- `ollama/llama3.1`
+- `ollama/llama3.1:70b`
+- `ollama/mistral`
+- `ollama/codellama`
+- `ollama/phi3`
+
+Ollama models are automatically detected and don't require additional configuration.
+
+### LM Studio
+
+[LM Studio](https://lmstudio.ai) provides a GUI for running local models with an OpenAI-compatible API.
+
+1. Download and install LM Studio
+2. Load a model in the app
+3. Start the local server (Settings → Local Server → Start Server)
+4. Configure your benchmark:
+
+```yaml
+models:
+  - "openai/local-model"
+
+model_configs:
+  "openai/local-model":
+    api_base: "http://localhost:1234/v1"
+```
+
+### Custom OpenAI-Compatible Endpoints
+
+For any OpenAI-compatible server (vLLM, text-generation-inference, etc.):
+
+```yaml
+models:
+  - "openai/my-custom-model"
+
+model_configs:
+  "openai/my-custom-model":
+    api_base: "http://localhost:8000/v1"
+```
+
+### vLLM
+
+For [vLLM](https://docs.vllm.ai/) served models:
+
+```yaml
+models:
+  - "hosted_vllm/meta-llama/Llama-3-8b"
+
+model_configs:
+  "hosted_vllm/meta-llama/Llama-3-8b":
+    api_base: "http://localhost:8000"
+```
+
 ## Using .env Files
 
 Instead of exporting environment variables, you can use `.env` files:
@@ -115,6 +191,9 @@ llm-bench --env-file production.env run --config bench.config.yaml
 | | `mistral/mistral-small-latest` | Fast and cheap |
 | **OpenRouter** | `openrouter/google/gemma-2-9b-it:free` | Free tier |
 | | `openrouter/meta-llama/llama-3-8b-instruct:free` | Free tier |
+| **Ollama** | `ollama/llama3.1` | Local, free |
+| | `ollama/mistral` | Local, free |
+| | `ollama/codellama` | Local, free |
 
 ## Checking API Key Status
 

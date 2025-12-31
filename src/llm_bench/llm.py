@@ -120,11 +120,27 @@ class LLMError(Exception):
         return msg
 
 
+def is_local_model(model: str) -> bool:
+    """Check if a model is a local model (Ollama, LM Studio, vLLM, etc.).
+
+    Args:
+        model: Model identifier.
+
+    Returns:
+        True if the model is a local model provider.
+    """
+    model_lower = model.lower()
+    local_prefixes = ("ollama/", "ollama_chat/", "lm_studio/", "hosted_vllm/")
+    return any(model_lower.startswith(prefix) for prefix in local_prefixes)
+
+
 def _get_api_key_suggestion(model: str) -> str:
     """Get a suggestion for setting the API key based on model name."""
     model_lower = model.lower()
 
-    if "openai" in model_lower or model_lower.startswith("gpt"):
+    if is_local_model(model):
+        return "Local models don't require API keys. Ensure your local server is running."
+    elif "openai" in model_lower or model_lower.startswith("gpt"):
         return "Set OPENAI_API_KEY environment variable or add it to your .env file"
     elif "anthropic" in model_lower or "claude" in model_lower:
         return "Set ANTHROPIC_API_KEY environment variable or add it to your .env file"
@@ -191,6 +207,7 @@ async def call_llm(
     stream: bool = True,
     max_retries: int = DEFAULT_MAX_RETRIES,
     rate_limit: bool = True,
+    api_base: str | None = None,
 ) -> LLMResponse:
     """Call an LLM provider via LiteLLM and track metrics.
 
@@ -205,6 +222,7 @@ async def call_llm(
         stream: Whether to use streaming (enables TTFT tracking).
         max_retries: Maximum number of retry attempts for retryable errors.
         rate_limit: Whether to apply rate limiting (default True).
+        api_base: Custom API base URL for local models or custom endpoints.
 
     Returns:
         LLMResponse with content and metrics.
@@ -230,11 +248,11 @@ async def call_llm(
         try:
             if stream:
                 content, ttft, token_usage, raw_response = await _call_streaming(
-                    model, messages, temperature, start_time
+                    model, messages, temperature, start_time, api_base
                 )
             else:
                 content, token_usage, raw_response = await _call_non_streaming(
-                    model, messages, temperature
+                    model, messages, temperature, api_base
                 )
 
             total_time = time.perf_counter() - start_time
@@ -334,6 +352,7 @@ async def _call_streaming(
     messages: list[dict[str, str]],
     temperature: float,
     start_time: float,
+    api_base: str | None = None,
 ) -> tuple[str, float | None, TokenUsage, dict[str, Any] | None]:
     """Make a streaming LLM call and collect response.
 
@@ -345,12 +364,16 @@ async def _call_streaming(
     prompt_tokens = 0
     completion_tokens = 0
 
-    response = await litellm.acompletion(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        stream=True,
-    )
+    kwargs: dict[str, Any] = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "stream": True,
+    }
+    if api_base:
+        kwargs["api_base"] = api_base
+
+    response = await litellm.acompletion(**kwargs)
 
     async for chunk in response:
         if ttft is None:
@@ -383,18 +406,23 @@ async def _call_non_streaming(
     model: str,
     messages: list[dict[str, str]],
     temperature: float,
+    api_base: str | None = None,
 ) -> tuple[str, TokenUsage, dict[str, Any]]:
     """Make a non-streaming LLM call.
 
     Returns:
         Tuple of (content, token_usage, raw_response).
     """
-    response = await litellm.acompletion(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        stream=False,
-    )
+    kwargs: dict[str, Any] = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "stream": False,
+    }
+    if api_base:
+        kwargs["api_base"] = api_base
+
+    response = await litellm.acompletion(**kwargs)
 
     content = response.choices[0].message.content or ""
 
@@ -421,8 +449,8 @@ def _estimate_tokens(
     """
     try:
         prompt_text = " ".join(msg["content"] for msg in messages)
-        prompt_tokens: int = litellm.token_counter(model=model, text=prompt_text)
-        completion_tokens: int = litellm.token_counter(model=model, text=completion)
+        prompt_tokens: int = litellm.token_counter(model=model, text=prompt_text)  # type: ignore
+        completion_tokens: int = litellm.token_counter(model=model, text=completion)  # type: ignore
         return prompt_tokens, completion_tokens
     except Exception:
         # Fallback to rough estimate (4 chars per token)
@@ -442,7 +470,7 @@ def calculate_cost(model: str, prompt_tokens: int, completion_tokens: int) -> fl
         Total cost in USD.
     """
     try:
-        prompt_cost, completion_cost = litellm.cost_per_token(
+        prompt_cost, completion_cost = litellm.cost_per_token(  # type: ignore
             model=model,
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
@@ -475,28 +503,31 @@ def check_missing_api_keys(models: list[str]) -> list[str]:
 
     missing = []
 
+    # Filter out local models - they don't need API keys
+    cloud_models = [m for m in models if not is_local_model(m)]
+
     # OpenAI
     if any(
-        m.startswith("openai/") or m.startswith("gpt-") for m in models
+        m.startswith("openai/") or m.startswith("gpt-") for m in cloud_models
     ) and not os.getenv("OPENAI_API_KEY"):
         missing.append("OPENAI_API_KEY (for OpenAI models)")
 
     # Anthropic
     if any(
-        m.startswith("anthropic/") or "claude" in m for m in models
+        m.startswith("anthropic/") or "claude" in m for m in cloud_models
     ) and not os.getenv("ANTHROPIC_API_KEY"):
         missing.append("ANTHROPIC_API_KEY (for Anthropic models)")
 
     # Google Gemini
     if (
-        any(m.startswith("gemini/") or "gemini" in m for m in models)
+        any(m.startswith("gemini/") or "gemini" in m for m in cloud_models)
         and not os.getenv("GEMINI_API_KEY")
         and not os.getenv("GOOGLE_API_KEY")
     ):
         missing.append("GEMINI_API_KEY or GOOGLE_API_KEY (for Google Gemini models)")
 
     # OpenRouter
-    if any(m.startswith("openrouter/") for m in models) and not os.getenv(
+    if any(m.startswith("openrouter/") for m in cloud_models) and not os.getenv(
         "OPENROUTER_API_KEY"
     ):
         missing.append("OPENROUTER_API_KEY (for OpenRouter models)")
