@@ -17,6 +17,7 @@ PROVIDERS = {
     "openai": {
         "name": "OpenAI",
         "env_var": "OPENAI_API_KEY",
+        "is_local": False,
         "models": [
             ("openai/gpt-4o", "Latest flagship model"),
             ("openai/gpt-4o-mini", "Cost-effective, fast"),
@@ -27,6 +28,7 @@ PROVIDERS = {
     "anthropic": {
         "name": "Anthropic",
         "env_var": "ANTHROPIC_API_KEY",
+        "is_local": False,
         "models": [
             ("anthropic/claude-3-5-sonnet-20241022", "Best balance of speed/quality"),
             ("anthropic/claude-3-5-haiku-20241022", "Fastest, most affordable"),
@@ -36,6 +38,7 @@ PROVIDERS = {
     "google": {
         "name": "Google (Gemini)",
         "env_var": "GEMINI_API_KEY",
+        "is_local": False,
         "models": [
             ("gemini/gemini-1.5-pro", "Best for complex tasks"),
             ("gemini/gemini-1.5-flash", "Fast and efficient"),
@@ -45,6 +48,7 @@ PROVIDERS = {
     "openrouter": {
         "name": "OpenRouter",
         "env_var": "OPENROUTER_API_KEY",
+        "is_local": False,
         "models": [
             ("openrouter/google/gemma-2-9b-it:free", "Free tier model"),
             ("openrouter/meta-llama/llama-3-8b-instruct:free", "Free Llama model"),
@@ -54,10 +58,33 @@ PROVIDERS = {
     "groq": {
         "name": "Groq",
         "env_var": "GROQ_API_KEY",
+        "is_local": False,
         "models": [
             ("groq/llama-3.1-70b-versatile", "Large Llama model"),
             ("groq/llama-3.1-8b-instant", "Fast, small Llama"),
             ("groq/mixtral-8x7b-32768", "Mixtral MoE"),
+        ],
+    },
+    "ollama": {
+        "name": "Ollama (Local)",
+        "env_var": None,
+        "is_local": True,
+        "api_base": "http://localhost:11434",
+        "models": [
+            ("ollama/llama3.1", "Meta Llama 3.1"),
+            ("ollama/llama3.1:70b", "Llama 3.1 70B"),
+            ("ollama/mistral", "Mistral 7B"),
+            ("ollama/codellama", "Code Llama"),
+            ("ollama/phi3", "Microsoft Phi-3"),
+        ],
+    },
+    "lm_studio": {
+        "name": "LM Studio (Local)",
+        "env_var": None,
+        "is_local": True,
+        "api_base": "http://localhost:1234/v1",
+        "models": [
+            ("openai/local-model", "Your loaded model (via OpenAI-compatible API)"),
         ],
     },
 }
@@ -119,11 +146,16 @@ def run_init_wizard(output_path: Path) -> None:
     provider_list = list(PROVIDERS.keys())
     for i, key in enumerate(provider_list, 1):
         prov = PROVIDERS[key]
-        env_var = str(prov["env_var"])
-        is_configured = bool(os.getenv(env_var))
-        status = (
-            "[green]configured[/green]" if is_configured else "[yellow]not set[/yellow]"
-        )
+        if prov.get("is_local"):
+            status = "[cyan]local[/cyan]"
+        else:
+            env_var = str(prov["env_var"])
+            is_configured = bool(os.getenv(env_var))
+            status = (
+                "[green]configured[/green]"
+                if is_configured
+                else "[yellow]not set[/yellow]"
+            )
         table.add_row(str(i), str(prov["name"]), status)
 
     console.print(table)
@@ -153,10 +185,16 @@ def run_init_wizard(output_path: Path) -> None:
     console.print()
 
     selected_models: list[str] = []
+    model_configs: dict[str, dict[str, Any]] = {}
 
     for provider_key in selected_providers:
         prov = PROVIDERS[provider_key]
         console.print(f"[bold cyan]{prov['name']} Models:[/bold cyan]")
+
+        # For local providers, show a note about the server
+        if prov.get("is_local"):
+            api_base = prov.get("api_base", "http://localhost:11434")
+            console.print(f"[dim]Server: {api_base}[/dim]")
 
         model_table = Table(show_header=True, header_style="bold")
         model_table.add_column("#", style="dim", width=3)
@@ -173,21 +211,31 @@ def run_init_wizard(output_path: Path) -> None:
             default="1",
         )
 
+        models_to_add: list[str] = []
         if model_input.lower() == "all":
-            selected_models.extend([m[0] for m in prov["models"]])
+            models_to_add = [m[0] for m in prov["models"]]
         else:
             try:
                 indices = [int(x.strip()) for x in model_input.split(",")]
                 for idx in indices:
                     if 1 <= idx <= len(prov["models"]):
-                        selected_models.append(prov["models"][idx - 1][0])
+                        models_to_add.append(prov["models"][idx - 1][0])
             except ValueError:
                 # Default to first model
-                selected_models.append(prov["models"][0][0])
+                models_to_add.append(prov["models"][0][0])
+
+        # Add models and track model_configs for local providers
+        for model_name in models_to_add:
+            selected_models.append(model_name)
+            # For local providers with custom api_base, add to model_configs
+            if prov.get("is_local") and prov.get("api_base"):
+                model_configs[model_name] = {"api_base": prov["api_base"]}
 
         console.print()
 
     config["models"] = selected_models
+    if model_configs:
+        config["model_configs"] = model_configs
     console.print(f"[dim]Selected {len(selected_models)} model(s)[/dim]")
     console.print()
 

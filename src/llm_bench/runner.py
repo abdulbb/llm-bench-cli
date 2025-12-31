@@ -157,6 +157,9 @@ async def run_benchmark(
                 validator_func = fail_validator
 
         async with semaphore:
+            # Get custom api_base for this model if configured
+            model_api_base = config.get_model_api_base(spec.model)
+
             result = await execute_single_test(
                 model=spec.model,
                 test_case=spec.test_case,
@@ -166,6 +169,7 @@ async def run_benchmark(
                 schema=schema,
                 cache=cache,
                 custom_validator=validator_func,
+                api_base=model_api_base,
             )
 
             # Update cost if not cached
@@ -220,6 +224,7 @@ async def execute_single_test(
     schema: dict[str, Any] | None = None,
     cache: ResponseCache | None = None,
     custom_validator: Callable[[str], Any] | None = None,
+    api_base: str | None = None,
 ) -> TestResult:
     """Execute a single test case against a model.
 
@@ -232,6 +237,7 @@ async def execute_single_test(
         schema: Optional JSON schema for validation.
         cache: Optional response cache for avoiding redundant API calls.
         custom_validator: Optional custom validation function.
+        api_base: Optional custom API base URL for local models.
 
     Returns:
         TestResult with validation results and metrics.
@@ -262,6 +268,7 @@ async def execute_single_test(
                 user_input=test_case.input,
                 temperature=effective_temperature,
                 stream=True,
+                api_base=api_base,
             )
 
             # Store in cache if available

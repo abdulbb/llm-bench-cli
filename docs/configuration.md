@@ -36,6 +36,37 @@ test_cases:
     *   `openai/gpt-4o`
     *   `anthropic/claude-3-5-sonnet-20241022`
     *   `gemini/gemini-1.5-pro`
+    *   `ollama/llama3.1` (local model)
+
+### `model_configs` (Optional)
+*   **Type:** `dict[str, ModelConfig]`
+*   **Description:** Per-model configuration options. Useful for local models or custom endpoints that need a specific `api_base`.
+
+Each model config can have:
+*   **`api_base`** (`str` | `null`): Custom API base URL for the model.
+
+**Example - Local LM Studio model:**
+```yaml
+models:
+  - "openai/local-model"
+
+model_configs:
+  "openai/local-model":
+    api_base: "http://localhost:1234/v1"
+```
+
+**Example - Multiple local endpoints:**
+```yaml
+models:
+  - "ollama/llama3.1"
+  - "openai/custom-model"
+
+model_configs:
+  "openai/custom-model":
+    api_base: "http://192.168.1.100:8000/v1"
+```
+
+**Note:** Ollama models (`ollama/model-name`) work automatically without needing `model_configs`. LiteLLM detects them and uses the default Ollama endpoint (`http://localhost:11434`).
 
 ### `config` (Optional)
 Run-time settings for the execution engine.

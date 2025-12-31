@@ -23,6 +23,19 @@ class ValidationStatus(str, Enum):
     FAILED_FUZZY = "failed_fuzzy"
 
 
+class ModelConfig(BaseModel):
+    """Configuration for a specific model.
+
+    Allows setting custom API base URLs for local models
+    or custom OpenAI-compatible endpoints.
+    """
+
+    api_base: str | None = Field(
+        default=None,
+        description="Custom API base URL (e.g., http://localhost:11434 for Ollama)",
+    )
+
+
 class RunConfig(BaseModel):
     """Configuration for benchmark execution.
 
@@ -329,6 +342,10 @@ class BenchConfig(BaseModel):
         min_length=1,
         description="List of model identifiers to benchmark",
     )
+    model_configs: dict[str, ModelConfig] = Field(
+        default_factory=dict,
+        description="Per-model configuration (e.g., api_base for local models)",
+    )
     config: RunConfig = Field(
         ...,
         description="Execution configuration",
@@ -338,6 +355,19 @@ class BenchConfig(BaseModel):
         min_length=1,
         description="Test cases to run against each model",
     )
+
+    def get_model_api_base(self, model: str) -> str | None:
+        """Get the API base URL for a model, if configured.
+
+        Args:
+            model: The model identifier.
+
+        Returns:
+            The API base URL or None if not configured.
+        """
+        if model in self.model_configs:
+            return self.model_configs[model].api_base
+        return None
 
     @field_validator("models")
     @classmethod
